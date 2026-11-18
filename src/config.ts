@@ -9,6 +9,21 @@ export interface ChannelDestination {
   webhookName?: string;
 }
 
+export interface StatusConfig {
+  /** Public address shown in the bot activity (e.g. play.myserver.com) */
+  serverIp?: string;
+  /** Friendly name of the server */
+  serverName?: string;
+  /** How often to refresh player count & presence (seconds) */
+  updateIntervalSeconds?: number;
+  /** Starting mode when the bridge boots */
+  defaultMode?: "online" | "maintenance" | "offline";
+  /** Activity text templates. Placeholders: {players} {max} {ip} {name} */
+  onlineActivity?: string;
+  maintenanceActivity?: string;
+  offlineActivity?: string;
+}
+
 export interface Config {
   discord: {
     token: string;
@@ -22,6 +37,7 @@ export interface Config {
     };
     logFile: string;
   };
+  status?: StatusConfig;
   defaults: {
     useWebhook: boolean;
     webhookName: string;
@@ -59,6 +75,15 @@ const DEFAULTS: Partial<Config> = {
     useWebhook: true,
     webhookName: "Minecraft Server",
     playerAvatarUrl: "https://mc-heads.net/avatar/{name}",
+  },
+  status: {
+    serverIp: "play.example.com",
+    serverName: "Minecraft Server",
+    updateIntervalSeconds: 30,
+    defaultMode: "online",
+    onlineActivity: "{players}/{max} online | {ip}",
+    maintenanceActivity: "Under maintenance | {ip}",
+    offlineActivity: "Offline | {ip}",
   },
   inbound: {
     chatChannels: [],
@@ -100,6 +125,7 @@ export function loadConfig(configPath = "config.yml"): Config {
     ...DEFAULTS,
     ...parsed,
     defaults: { ...DEFAULTS.defaults, ...parsed.defaults },
+    status: { ...DEFAULTS.status, ...parsed.status },
     inbound: { ...DEFAULTS.inbound, ...parsed.inbound },
     formats: { ...DEFAULTS.formats, ...parsed.formats },
     channels: parsed.channels ?? {},
