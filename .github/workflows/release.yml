@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g. 1.0.0) — do not include the v prefix"
+        required: true
+        type: string
+      prerelease:
+        description: "Mark as pre-release"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: $VERSION"
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: "25"
+          distribution: "temurin"
+          cache: maven
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Build Paper plugin (Maven)
+        working-directory: plugin
+        run: mvn -B clean package -Drevision=${{ steps.ver.outputs.version }}
+
+      - name: Build Node bridge
+        run: |
+          npm ci
+          npm run build
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          # Plugin JAR
+          cp plugin/target/minecraft-discord-bridge-*.jar release-assets/ || true
+          # Rename to a stable name if possible
+          PLUGIN_JAR=$(ls release-assets/minecraft-discord-bridge-*.jar 2>/dev/null | head -n1 || true)
+          if [ -n "$PLUGIN_JAR" ]; then
+            cp "$PLUGIN_JAR" "release-assets/MinecraftDiscordBridge-${{ steps.ver.outputs.version }}-paper-26.2.jar"
+          fi
+          # Optional: zip of the Node project (source + built dist)
+          zip -r "release-assets/minecraft-discord-bridge-node-${{ steps.ver.outputs.version }}.zip" \
+            package.json package-lock.json dist config.example.yml README.md LICENSE \
+            -x "*.map" 2>/dev/null || true
+          ls -la release-assets/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Release ${{ steps.ver.outputs.tag }}
+          generate_release_notes: true
+          prerelease: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || false }}
+          files: |
+            release-assets/*
+          body: |
+            ## Minecraft Discord Bridge ${{ steps.ver.outputs.tag }}
+
+            ### What's included
+            - **Paper 26.2 plugin JAR** — drop into your server's `plugins/` folder
+            - **Node bridge zip** — the Discord bot / webhook bridge
+
+            ### Quick update
+            1. Download the plugin JAR and replace the old one in `plugins/`
+            2. Pull / extract the Node bridge and run `npm install && npm run build && npm start`
+            3. Check `config.example.yml` for any new options (especially `status:`)
+
+            See the [README](https://github.com/Null3nter/minecraft-discord-bridge#readme) for full setup.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
