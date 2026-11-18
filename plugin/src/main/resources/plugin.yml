@@ -1,7 +1,8 @@
 name: MinecraftDiscordBridge
 version: '${project.version}'
 main: com.null3nter.mcdc.MinecraftDiscordBridgePlugin
-description: Companion plugin for the Discord bridge
+description: Self-contained Discord bridge for Paper — chat, events, console, live status
 author: Null3nter
 api-version: '1.21'
 load: POSTWORLD
+folia-supported: false
