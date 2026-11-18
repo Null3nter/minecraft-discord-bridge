@@ -1,56 +1,54 @@
 package com.null3nter.mcdc;
 
-import org.bukkit.Bukkit;
+import com.null3nter.mcdc.discord.DiscordBridge;
+import com.null3nter.mcdc.listeners.MinecraftListeners;
 import org.bukkit.plugin.java.JavaPlugin;
 
-/**
- * Lightweight Paper companion for the Node.js Discord bridge.
- *
- * Current responsibilities:
- *  - Expose accurate online player count (for future HTTP / socket integration)
- *  - Provide a clean place to add richer events later (chat, deaths, etc.)
- *  - Ready for 26.2 (and compatible with nearby versions)
- *
- * The main Discord logic (webhooks, multi-channel routing, presence) lives
- * in the Node.js side of this repository.
- */
 public final class MinecraftDiscordBridgePlugin extends JavaPlugin {
 
     private static MinecraftDiscordBridgePlugin instance;
+    private DiscordBridge discord;
 
     @Override
     public void onEnable() {
         instance = this;
         saveDefaultConfig();
+        reloadConfig();
 
-        getLogger().info("Minecraft Discord Bridge companion loaded (Paper 26.2).");
-        getLogger().info("Player count: " + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers());
+        String token = getConfig().getString("discord.token", "");
+        if (token == null || token.isBlank() || token.startsWith("YOUR_")) {
+            getLogger().severe("Set discord.token in plugins/MinecraftDiscordBridge/config.yml then restart.");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
 
-        // Simple repeating task that can later push status to the Node bridge
-        // or expose it via a small local endpoint.
-        long interval = getConfig().getLong("status-broadcast-interval-ticks", 20L * 30); // 30s default
-        Bukkit.getScheduler().runTaskTimer(this, () -> {
-            // Placeholder for future integration (socket, HTTP callback, etc.)
-            // For now we just keep the plugin alive and ready.
-        }, interval, interval);
+        try {
+            discord = new DiscordBridge(this);
+            discord.start();
+            getServer().getPluginManager().registerEvents(new MinecraftListeners(this, discord), this);
+            getLogger().info("Minecraft Discord Bridge enabled.");
+        } catch (Exception e) {
+            getLogger().severe("Failed to start Discord bridge: " + e.getMessage());
+            e.printStackTrace();
+            getServer().getPluginManager().disablePlugin(this);
+        }
     }
 
     @Override
     public void onDisable() {
-        getLogger().info("Minecraft Discord Bridge companion disabled.");
+        if (discord != null) {
+            discord.shutdown();
+            discord = null;
+        }
         instance = null;
+        getLogger().info("Minecraft Discord Bridge disabled.");
     }
 
     public static MinecraftDiscordBridgePlugin getInstance() {
         return instance;
     }
 
-    /** Convenience helpers used by future status / event modules */
-    public int getOnlineCount() {
-        return Bukkit.getOnlinePlayers().size();
-    }
-
-    public int getMaxPlayers() {
-        return Bukkit.getMaxPlayers();
+    public DiscordBridge getDiscord() {
+        return discord;
     }
 }
