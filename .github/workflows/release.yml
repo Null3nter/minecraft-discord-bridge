@@ -52,31 +52,27 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: npm
 
       - name: Build Paper plugin (Maven)
         working-directory: plugin
-        run: mvn -B clean package -Drevision=${{ steps.ver.outputs.version }}
+        run: mvn -B clean package
 
       - name: Build Node bridge
         run: |
-          npm ci
+          npm install
           npm run build
 
       - name: Prepare release assets
         run: |
           mkdir -p release-assets
-          # Plugin JAR
-          cp plugin/target/minecraft-discord-bridge-*.jar release-assets/ || true
-          # Rename to a stable name if possible
-          PLUGIN_JAR=$(ls release-assets/minecraft-discord-bridge-*.jar 2>/dev/null | head -n1 || true)
+          PLUGIN_JAR=$(ls plugin/target/minecraft-discord-bridge-*.jar 2>/dev/null | head -n1 || true)
           if [ -n "$PLUGIN_JAR" ]; then
             cp "$PLUGIN_JAR" "release-assets/MinecraftDiscordBridge-${{ steps.ver.outputs.version }}-paper-26.2.jar"
           fi
-          # Optional: zip of the Node project (source + built dist)
           zip -r "release-assets/minecraft-discord-bridge-node-${{ steps.ver.outputs.version }}.zip" \
-            package.json package-lock.json dist config.example.yml README.md LICENSE \
-            -x "*.map" 2>/dev/null || true
+            package.json dist config.example.yml README.md LICENSE \
+            src plugin .github \
+            -x "*.map" "plugin/target/*" "node_modules/*" 2>/dev/null || true
           ls -la release-assets/
 
       - name: Create GitHub Release
