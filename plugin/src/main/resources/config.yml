@@ -20,32 +20,58 @@ status:
   offline-activity: "Offline | {ip}"
 
 defaults:
-  use-webhook: true
+  # Default if a channel entry does not set mode
+  mode: webhook
   webhook-name: "Minecraft Server"
   player-avatar-url: "https://mc-heads.net/avatar/{name}"
 
-# Route each event to one or many channels.
-# use-webhook: true  → send as webhook (player name + head)
-# use-webhook: false → send as the bot
-# webhook-url: optional; if missing the bot creates one (needs Manage Webhooks)
+# ------------------------------------------------------------
+# CHANNELS — each entry is a list item:
+#
+#   channel:      Discord channel ID
+#   mode:         webhook  OR  bot
+#   webhook-url:  (only when mode is webhook) paste the webhook link here
+#                 Leave empty to let the bot create/manage a webhook
+#                 (bot needs Manage Webhooks permission)
+#
+# Add more list items under the same type to post to multiple channels.
+# ------------------------------------------------------------
 channels:
   chat:
-    - channel-id: "CHAT_CHANNEL_ID"
-      use-webhook: true
+    - channel: "CHAT_CHANNEL_ID"
+      mode: webhook
+      webhook-url: ""
+    # Example second channel as the bot instead:
+    # - channel: "ANOTHER_CHANNEL_ID"
+    #   mode: bot
+
   join:
-    - channel-id: "CHAT_CHANNEL_ID"
+    - channel: "CHAT_CHANNEL_ID"
+      mode: webhook
+      webhook-url: ""
+
   leave:
-    - channel-id: "CHAT_CHANNEL_ID"
+    - channel: "CHAT_CHANNEL_ID"
+      mode: webhook
+      webhook-url: ""
+
   death:
-    - channel-id: "CHAT_CHANNEL_ID"
+    - channel: "CHAT_CHANNEL_ID"
+      mode: webhook
+      webhook-url: ""
+
   advancement:
-    - channel-id: "CHAT_CHANNEL_ID"
+    - channel: "CHAT_CHANNEL_ID"
+      mode: webhook
+      webhook-url: ""
+
   server:
-    - channel-id: "CONSOLE_CHANNEL_ID"
-      use-webhook: false
+    - channel: "CONSOLE_CHANNEL_ID"
+      mode: bot
+
   console:
-    - channel-id: "CONSOLE_CHANNEL_ID"
-      use-webhook: false
+    - channel: "CONSOLE_CHANNEL_ID"
+      mode: bot
 
 # Discord → Minecraft
 inbound:
