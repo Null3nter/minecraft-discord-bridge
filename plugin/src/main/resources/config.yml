@@ -1,5 +1,70 @@
-# Companion plugin configuration
-# Most Discord logic lives in the Node.js bridge (config.yml at repo root).
+# ============================================================
+# Minecraft Discord Bridge — runs entirely on your Paper server
+# ============================================================
 
-# How often (in ticks) the plugin refreshes internal status (20 ticks = 1 second)
-status-broadcast-interval-ticks: 600
+discord:
+  # Bot token from https://discord.com/developers/applications
+  token: "YOUR_BOT_TOKEN_HERE"
+  # Optional: only accept messages from this guild
+  # guild-id: "123456789012345678"
+
+# Live bot presence (Online / DND / Offline)
+status:
+  server-ip: "play.example.com"
+  server-name: "My Minecraft Server"
+  update-interval-seconds: 30
+  # online | maintenance | offline
+  default-mode: "online"
+  online-activity: "{players}/{max} online | {ip}"
+  maintenance-activity: "Under maintenance | {ip}"
+  offline-activity: "Offline | {ip}"
+
+defaults:
+  use-webhook: true
+  webhook-name: "Minecraft Server"
+  player-avatar-url: "https://mc-heads.net/avatar/{name}"
+
+# Route each event to one or many channels.
+# use-webhook: true  → send as webhook (player name + head)
+# use-webhook: false → send as the bot
+# webhook-url: optional; if missing the bot creates one (needs Manage Webhooks)
+channels:
+  chat:
+    - channel-id: "CHAT_CHANNEL_ID"
+      use-webhook: true
+  join:
+    - channel-id: "CHAT_CHANNEL_ID"
+  leave:
+    - channel-id: "CHAT_CHANNEL_ID"
+  death:
+    - channel-id: "CHAT_CHANNEL_ID"
+  advancement:
+    - channel-id: "CHAT_CHANNEL_ID"
+  server:
+    - channel-id: "CONSOLE_CHANNEL_ID"
+      use-webhook: false
+  console:
+    - channel-id: "CONSOLE_CHANNEL_ID"
+      use-webhook: false
+
+# Discord → Minecraft
+inbound:
+  chat-channels:
+    - "CHAT_CHANNEL_ID"
+  console-command-channels:
+    - "CONSOLE_CHANNEL_ID"
+  # Role names or IDs allowed to run console commands (empty = anyone in those channels)
+  allowed-roles:
+    - "Admin"
+    - "Moderator"
+  command-prefix: "!"
+
+formats:
+  chat-to-discord: "**{player}**: {message}"
+  chat-to-minecraft: "§9[Discord] §f{user}§7: §f{message}"
+  join: "{player} joined the game"
+  leave: "{player} left the game"
+  death: "{message}"
+  advancement: "{player} has made the advancement [{advancement}]"
+  server-start: "✅ Server started"
+  server-stop: "🔴 Server stopped"
