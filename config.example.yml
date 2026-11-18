@@ -1,0 +1,93 @@
+# Copy this file to config.yml and fill in your values
+
+discord:
+  token: "YOUR_BOT_TOKEN_HERE"
+  # Optional: only listen in this guild
+  # guildId: "123456789012345678"
+
+minecraft:
+  rcon:
+    host: "127.0.0.1"
+    port: 25575
+    password: "change_me"
+  # Path to the server's latest.log (used for chat + events)
+  # Can be relative or absolute. On Windows use forward slashes or escaped backslashes.
+  logFile: "./logs/latest.log"
+
+# Global defaults applied when a destination does not override them
+defaults:
+  useWebhook: true
+  webhookName: "Minecraft Server"
+  # {name} = player name, {uuid} = player UUID (if available)
+  playerAvatarUrl: "https://mc-heads.net/avatar/{name}"
+
+# ---------------------------------------------------------------------------
+# ROUTING
+# Each event type can list one or more destinations.
+# - channelId is required
+# - useWebhook (optional) overrides defaults.useWebhook
+# - webhookUrl (optional) – if omitted and useWebhook=true the bot will try
+#   to create/manage a webhook (needs Manage Webhooks permission)
+# ---------------------------------------------------------------------------
+channels:
+  # In-game chat messages
+  chat:
+    - channelId: "CHAT_CHANNEL_ID_1"
+      useWebhook: true
+    - channelId: "CHAT_CHANNEL_ID_2"   # same chat also goes here
+      useWebhook: false                # this one uses the bot user
+
+  # Server console / log lines (raw-ish)
+  console:
+    - channelId: "CONSOLE_CHANNEL_ID"
+      useWebhook: false
+
+  join:
+    - channelId: "CHAT_CHANNEL_ID_1"
+    - channelId: "EVENTS_CHANNEL_ID"
+
+  leave:
+    - channelId: "CHAT_CHANNEL_ID_1"
+
+  death:
+    - channelId: "CHAT_CHANNEL_ID_1"
+
+  advancement:
+    - channelId: "CHAT_CHANNEL_ID_1"
+
+  server: # start / stop messages
+    - channelId: "CONSOLE_CHANNEL_ID"
+
+# ---------------------------------------------------------------------------
+# Discord → Minecraft
+# ---------------------------------------------------------------------------
+inbound:
+  # Channels whose messages are relayed into Minecraft chat
+  chatChannels:
+    - "CHAT_CHANNEL_ID_1"
+
+  # Channels whose messages are treated as RCON commands
+  consoleCommandChannels:
+    - "CONSOLE_CHANNEL_ID"
+
+  # Role names (or IDs) allowed to run console commands.
+  # Leave empty to allow anyone who can talk in the command channels.
+  allowedRoles:
+    - "Admin"
+    - "Moderator"
+
+  # Optional prefix. If set, only messages starting with this are treated as commands.
+  # Leave empty ("") to treat the whole message as a command.
+  commandPrefix: "!"
+
+# Message templates. Available placeholders depend on the event:
+# {player}, {message}, {user}, {server}, {uuid}, etc.
+formats:
+  chatToDiscord: "**{player}**: {message}"
+  chatToMinecraft: "§9[Discord] §f{user}§7: §f{message}"
+  join: "§e{player} joined the game"
+  leave: "§e{player} left the game"
+  death: "{message}"
+  advancement: "{player} has made the advancement [{advancement}]"
+  serverStart: "✅ Server started"
+  serverStop: "🔴 Server stopped"
