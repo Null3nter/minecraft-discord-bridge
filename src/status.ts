@@ -94,13 +94,13 @@ export class StatusManager {
           `Under maintenance | ${ip}`;
         break;
       case "offline":
-        status = "invisible"; // or "offline" look
+        status = "invisible";
         activityText =
           cfg.offlineActivity ??
           `Offline | ${ip}`;
         break;
       case "online":
-default:
+      default:
         status = "online";
         activityText =
           (cfg.onlineActivity ??
