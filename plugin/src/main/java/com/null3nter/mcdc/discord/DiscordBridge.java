@@ -10,16 +10,14 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.Webhook;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import org.bukkit.Bukkit;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -147,40 +145,62 @@ public class DiscordBridge extends ListenerAdapter {
         sendTo("console", "```\n" + line + "\n```", null, null, true);
     }
 
+    /**
+     * Reads each list entry as:
+     *   channel: "id"
+     *   mode: webhook | bot
+     *   webhook-url: "https://..."   (when mode is webhook)
+     */
     private void sendTo(String type, String content, String username, String avatarUrl, boolean forceBot) {
         if (jda == null || content == null || content.isBlank()) return;
 
         List<Map<?, ?>> destinations = plugin.getConfig().getMapList("channels." + type);
         if (destinations == null || destinations.isEmpty()) return;
 
-        boolean defaultWebhook = plugin.getConfig().getBoolean("defaults.use-webhook", true);
+        String defaultMode = plugin.getConfig().getString("defaults.mode", "webhook");
         String defaultName = plugin.getConfig().getString("defaults.webhook-name", "Minecraft Server");
 
         for (Map<?, ?> dest : destinations) {
-            Object idObj = dest.get("channel-id");
-            if (idObj == null) continue;
-            String channelId = String.valueOf(idObj);
+            String channelId = str(dest, "channel", str(dest, "channel-id", null));
+            if (channelId == null || channelId.isBlank()) continue;
 
-            boolean useWebhook = !forceBot && Boolean.parseBoolean(String.valueOf(
-                    dest.getOrDefault("use-webhook", defaultWebhook)));
-            String webhookUrl = dest.get("webhook-url") != null ? String.valueOf(dest.get("webhook-url")) : null;
-            String webhookName = dest.get("webhook-name") != null
-                    ? String.valueOf(dest.get("webhook-name"))
-                    : (username != null ? username : defaultName);
+            String modeText = str(dest, "mode", defaultMode).toLowerCase().trim();
+            // Also accept legacy use-webhook: true/false
+            if (dest.containsKey("use-webhook") && !dest.containsKey("mode")) {
+                modeText = Boolean.parseBoolean(String.valueOf(dest.get("use-webhook"))) ? "webhook" : "bot";
+            }
+
+            boolean useWebhook = !forceBot && modeText.equals("webhook");
+            String webhookUrl = str(dest, "webhook-url", str(dest, "webhook-link", ""));
+            if (webhookUrl != null && webhookUrl.isBlank()) webhookUrl = null;
+
+            String webhookName = username != null ? username : defaultName;
+
+            final String finalWebhookUrl = webhookUrl;
+            final String finalChannelId = channelId;
+            final boolean finalUseWebhook = useWebhook;
 
             Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
                 try {
-                    if (useWebhook) {
-                        sendWebhook(channelId, webhookUrl, content, webhookName, avatarUrl);
+                    if (finalUseWebhook) {
+                        sendWebhook(finalChannelId, finalWebhookUrl, content, webhookName, avatarUrl);
                     } else {
-                        TextChannel ch = jda.getTextChannelById(channelId);
+                        TextChannel ch = jda.getTextChannelById(finalChannelId);
                         if (ch != null) ch.sendMessage(content).queue();
+                        else plugin.getLogger().warning("Unknown channel id: " + finalChannelId);
                     }
                 } catch (Exception e) {
-                    plugin.getLogger().warning("Failed to send to " + channelId + ": " + e.getMessage());
+                    plugin.getLogger().warning("Failed to send to " + finalChannelId + ": " + e.getMessage());
                 }
             });
         }
+    }
+
+    private static String str(Map<?, ?> map, String key, String fallback) {
+        Object v = map.get(key);
+        if (v == null) return fallback;
+        String s = String.valueOf(v);
+        return s;
     }
 
     private void sendWebhook(String channelId, String configuredUrl, String content, String username, String avatarUrl) {
@@ -188,9 +208,12 @@ public class DiscordBridge extends ListenerAdapter {
         if (url == null || url.isBlank()) {
             url = webhookCache.get(channelId);
         }
-        if (url == null) {
+        if (url == null || url.isBlank()) {
             TextChannel ch = jda.getTextChannelById(channelId);
-            if (ch == null) return;
+            if (ch == null) {
+                plugin.getLogger().warning("Unknown channel id for webhook: " + channelId);
+                return;
+            }
             List<Webhook> existing = ch.retrieveWebhooks().complete();
             Webhook found = existing.stream()
                     .filter(w -> w.getOwner() != null && w.getOwner().getId().equals(jda.getSelfUser().getId()))
@@ -203,11 +226,9 @@ public class DiscordBridge extends ListenerAdapter {
             webhookCache.put(channelId, url);
         }
 
-        // Simple JSON POST via JDA's requester is heavy; use channel webhook client
         TextChannel ch = jda.getTextChannelById(channelId);
         if (ch == null) return;
 
-        // Prefer webhook from cache / create path above — send with JDA WebhookClient pattern
         final String finalUrl = url;
         ch.retrieveWebhooks().queue(hooks -> {
             Webhook hook = hooks.stream()
@@ -258,7 +279,6 @@ public class DiscordBridge extends ListenerAdapter {
         List<String> chatChannels = plugin.getConfig().getStringList("inbound.chat-channels");
         List<String> consoleChannels = plugin.getConfig().getStringList("inbound.console-command-channels");
 
-        // Status commands in console channels
         if (consoleChannels.contains(channelId)) {
             String lower = content.toLowerCase();
             if (lower.equals("!status online") || lower.equals("!maintenance off")) {
@@ -278,7 +298,6 @@ public class DiscordBridge extends ListenerAdapter {
             }
         }
 
-        // Chat relay
         if (chatChannels.contains(channelId)) {
             String name = event.getMember().getEffectiveName();
             String formatted = format("formats.chat-to-minecraft", Map.of(
@@ -289,10 +308,9 @@ public class DiscordBridge extends ListenerAdapter {
             return;
         }
 
-        // Console commands
         if (consoleChannels.contains(channelId)) {
             if (!canRunCommands(event.getMember())) {
-                message.addReaction(net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("\uD83D\uDEAB")).queue();
+                message.addReaction(Emoji.fromUnicode("\uD83D\uDEAB")).queue();
                 return;
             }
 
