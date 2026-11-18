@@ -15,8 +15,8 @@
   <properties>
     <java.version>25</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <!-- Correct Paper 26.2 API coordinate (not the old 26.2-R0.1-SNAPSHOT style) -->
-    <paper.version>26.2.build.110-stable</paper.version>
+    <!-- Latest stable Paper 26.2 API from repo.papermc.io -->
+    <paper.version>26.2.build.135-stable</paper.version>
   </properties>
 
   <repositories>
