@@ -13,7 +13,33 @@ A flexible, highly configurable Discord ↔ Minecraft bridge that supports a **m
 - **Bidirectional chat** + console commands via RCON
 - **Event support**: Join/leave, deaths, advancements, server start/stop
 - **Paper 26.2 companion plugin** (Maven) for future richer integration
-- GitHub Actions workflow that compiles the plugin automatically
+- **Automated releases** via GitHub Actions
+
+## Releases
+
+Every update can ship as a GitHub Release with the plugin JAR and Node bridge attached.
+
+### Option A — Tag (recommended)
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Pushing a tag matching `v*` runs the **Release** workflow, builds everything, and publishes a release.
+
+### Option B — Manual (Actions UI)
+
+1. Go to **Actions → Release → Run workflow**
+2. Enter the version (e.g. `1.0.1`) without the `v`
+3. Optionally mark it as a pre-release
+4. Run — a release `v1.0.1` is created with the assets
+
+When you ask for an update in chat, I’ll bump versions and either prepare the tag or tell you the exact version to dispatch so a new release is published.
+
+Release assets typically include:
+- `MinecraftDiscordBridge-<version>-paper-26.2.jar`
+- `minecraft-discord-bridge-node-<version>.zip`
 
 ## Live Status Setup
 
@@ -77,9 +103,8 @@ Requires **JDK 25** (Paper 26.x requirement).
 
 ### GitHub Actions
 
-Pushing changes under `plugin/` (or running the workflow manually) builds the plugin against **Paper 26.2** and uploads the JAR as an artifact:
-
-`.github/workflows/build-plugin.yml`
+- `build-plugin.yml` — builds the plugin on every `plugin/` change
+- `release.yml` — creates a full GitHub Release on tag / manual dispatch
 
 ## Project Structure
 
@@ -96,7 +121,8 @@ plugin/                     # Paper 26.2 companion (Maven)
   src/main/java/...
   src/main/resources/
 .github/workflows/
-  build-plugin.yml          # Maven CI for Paper 26.2
+  build-plugin.yml
+  release.yml
 config.example.yml
 ```
 
