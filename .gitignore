@@ -1,0 +1,11 @@
+node_modules/
+dist/
+config.yml
+config.yaml
+config.json
+.env
+*.log
+.DS_Store
+.idea/
+.vscode/
+*.tsbuildinfo
