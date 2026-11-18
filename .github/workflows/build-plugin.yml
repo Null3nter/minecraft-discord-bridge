@@ -1,0 +1,39 @@
+name: Build Paper Plugin (26.2)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "plugin/**"
+      - ".github/workflows/build-plugin.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "plugin/**"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: "25"
+          distribution: "temurin"
+          cache: maven
+
+      - name: Build with Maven
+        working-directory: plugin
+        run: mvn -B clean package --file pom.xml
+
+      - name: Upload plugin JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: MinecraftDiscordBridge-Paper-26.2
+          path: plugin/target/minecraft-discord-bridge-*.jar
+          if-no-files-found: error
