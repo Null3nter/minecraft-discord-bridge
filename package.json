@@ -1,0 +1,40 @@
+{
+  "name": "minecraft-discord-bridge",
+  "version": "1.0.0",
+  "description": "Flexible Discord ↔ Minecraft bridge with mixed webhooks/bot and multi-channel routing",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "minecraft",
+    "discord",
+    "bridge",
+    "webhook",
+    "rcon",
+    "chat"
+  ],
+  "author": "Null3nter",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "js-yaml": "^4.1.0",
+    "rcon-client": "^4.2.5",
+    "chokidar": "^4.0.1",
+    "tail": "^2.2.6"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.9.0",
+    "@types/tail": "^2.2.3",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
