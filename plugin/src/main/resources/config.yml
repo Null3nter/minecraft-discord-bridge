@@ -1,0 +1,5 @@
+# Companion plugin configuration
+# Most Discord logic lives in the Node.js bridge (config.yml at repo root).
+
+# How often (in ticks) the plugin refreshes internal status (20 ticks = 1 second)
+status-broadcast-interval-ticks: 600
